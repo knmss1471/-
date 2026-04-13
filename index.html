@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>심플 계산기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .calc-container {
+            width: 100%;
+            max-width: 360px;
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            padding: 1.5rem;
+        }
+
+        .display-area {
+            text-align: right;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: #f9fafb;
+            border-radius: 1rem;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .previous-val {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+            word-break: break-all;
+        }
+
+        .current-val {
+            font-size: 2.25rem;
+            font-weight: 600;
+            color: #111827;
+            word-break: break-all;
+            line-height: 1;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+
+        .btn {
+            height: 4rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-number {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-number:hover {
+            background-color: #e5e7eb;
+        }
+
+        .btn-operator {
+            background-color: #ebf5ff;
+            color: #2563eb;
+        }
+
+        .btn-operator:hover {
+            background-color: #dbeafe;
+        }
+
+        .btn-action {
+            background-color: #fef2f2;
+            color: #dc2626;
+        }
+
+        .btn-action:hover {
+            background-color: #fee2e2;
+        }
+
+        .btn-equals {
+            background-color: #2563eb;
+            color: #ffffff;
+            grid-column: span 2;
+        }
+
+        .btn-equals:hover {
+            background-color: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calc-container">
+        <!-- 디스플레이 영역 -->
+        <div class="display-area">
+            <div id="previous-display" class="previous-val"></div>
+            <div id="current-display" class="current-val">0</div>
+        </div>
+
+        <!-- 키패드 영역 -->
+        <div class="keypad">
+            <!-- 첫 번째 줄 -->
+            <div class="btn btn-action" onclick="clearDisplay()">C</div>
+            <div class="btn btn-action" onclick="deleteLast()">DEL</div>
+            <div class="btn btn-operator" onclick="appendOperator('%')">%</div>
+            <div class="btn btn-operator" onclick="appendOperator('÷')">÷</div>
+
+            <!-- 두 번째 줄 -->
+            <div class="btn btn-number" onclick="appendNumber('7')">7</div>
+            <div class="btn btn-number" onclick="appendNumber('8')">8</div>
+            <div class="btn btn-number" onclick="appendNumber('9')">9</div>
+            <div class="btn btn-operator" onclick="appendOperator('×')">×</div>
+
+            <!-- 세 번째 줄 -->
+            <div class="btn btn-number" onclick="appendNumber('4')">4</div>
+            <div class="btn btn-number" onclick="appendNumber('5')">5</div>
+            <div class="btn btn-number" onclick="appendNumber('6')">6</div>
+            <div class="btn btn-operator" onclick="appendOperator('-')">-</div>
+
+            <!-- 네 번째 줄 -->
+            <div class="btn btn-number" onclick="appendNumber('1')">1</div>
+            <div class="btn btn-number" onclick="appendNumber('2')">2</div>
+            <div class="btn btn-number" onclick="appendNumber('3')">3</div>
+            <div class="btn btn-operator" onclick="appendOperator('+')">+</div>
+
+            <!-- 다섯 번째 줄 -->
+            <div class="btn btn-number" onclick="appendNumber('0')">0</div>
+            <div class="btn btn-number" onclick="appendNumber('.')">.</div>
+            <div class="btn btn-equals" onclick="compute()">=</div>
+        </div>
+    </div>
+
+    <script>
+        let currentOperand = '0';
+        let previousOperand = '';
+        let operation = undefined;
+        let shouldResetScreen = false;
+
+        const currentDisplay = document.getElementById('current-display');
+        const previousDisplay = document.getElementById('previous-display');
+
+        // 숫자 입력 함수
+        function appendNumber(number) {
+            if (currentOperand === '0' || shouldResetScreen) {
+                currentOperand = number;
+                shouldResetScreen = false;
+            } else {
+                if (number === '.' && currentOperand.includes('.')) return;
+                currentOperand += number;
+            }
+            updateDisplay();
+        }
+
+        // 연산자 입력 함수
+        function appendOperator(op) {
+            if (currentOperand === '') return;
+            if (previousOperand !== '') {
+                compute();
+            }
+            operation = op;
+            previousOperand = currentOperand;
+            currentOperand = '';
+            updateDisplay();
+        }
+
+        // 전체 초기화
+        function clearDisplay() {
+            currentOperand = '0';
+            previousOperand = '';
+            operation = undefined;
+            updateDisplay();
+        }
+
+        // 한 글자 삭제
+        function deleteLast() {
+            if (currentOperand === '0') return;
+            currentOperand = currentOperand.toString().slice(0, -1);
+            if (currentOperand === '') currentOperand = '0';
+            updateDisplay();
+        }
+
+        // 계산 실행
+        function compute() {
+            let computation;
+            const prev = parseFloat(previousOperand);
+            const current = parseFloat(currentOperand);
+            if (isNaN(prev) || isNaN(current)) return;
+
+            switch (operation) {
+                case '+':
+                    computation = prev + current;
+                    break;
+                case '-':
+                    computation = prev - current;
+                    break;
+                case '×':
+                    computation = prev * current;
+                    break;
+                case '÷':
+                    if (current === 0) {
+                        alertMessage("0으로 나눌 수 없습니다.");
+                        clearDisplay();
+                        return;
+                    }
+                    computation = prev / current;
+                    break;
+                case '%':
+                    computation = prev % current;
+                    break;
+                default:
+                    return;
+            }
+
+            // 결과 보정 (부동소수점 문제 해결)
+            currentOperand = Math.round(computation * 100000000) / 100000000;
+            operation = undefined;
+            previousOperand = '';
+            shouldResetScreen = true;
+            updateDisplay();
+        }
+
+        // 화면 업데이트
+        function updateDisplay() {
+            currentDisplay.innerText = formatNumber(currentOperand);
+            if (operation != null) {
+                previousDisplay.innerText = `${formatNumber(previousOperand)} ${operation}`;
+            } else {
+                previousDisplay.innerText = '';
+            }
+        }
+
+        // 숫자 포맷팅 (쉼표 추가 등)
+        function formatNumber(number) {
+            if (number === '') return '';
+            const stringNumber = number.toString();
+            const integerDigits = parseFloat(stringNumber.split('.')[0]);
+            const decimalDigits = stringNumber.split('.')[1];
+            let integerDisplay;
+            if (isNaN(integerDigits)) {
+                integerDisplay = '0';
+            } else {
+                integerDisplay = integerDigits.toLocaleString('en', { maximumFractionDigits: 0 });
+            }
+            if (decimalDigits != null) {
+                return `${integerDisplay}.${decimalDigits}`;
+            } else {
+                return integerDisplay;
+            }
+        }
+
+        // 커스텀 메시지 박스 (alert 대신 사용)
+        function alertMessage(msg) {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            
+            const modal = document.createElement('div');
+            modal.className = 'bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center';
+            modal.innerHTML = `
+                <p class="text-lg font-semibold text-gray-800 mb-4">${msg}</p>
+                <button class="bg-blue-600 text-white px-6 py-2 rounded-xl font-medium" onclick="this.parentElement.parentElement.remove()">확인</button>
+            `;
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        // 키보드 지원
+        window.addEventListener('keydown', e => {
+            if (e.key >= 0 && e.key <= 9) appendNumber(e.key);
+            if (e.key === '.') appendNumber(e.key);
+            if (e.key === '=' || e.key === 'Enter') compute();
+            if (e.key === 'Backspace') deleteLast();
+            if (e.key === 'Escape') clearDisplay();
+            if (e.key === '+') appendOperator('+');
+            if (e.key === '-') appendOperator('-');
+            if (e.key === '*') appendOperator('×');
+            if (e.key === '/') {
+                e.preventDefault();
+                appendOperator('÷');
+            }
+            if (e.key === '%') appendOperator('%');
+        });
+    </script>
+</body>
+</html>
